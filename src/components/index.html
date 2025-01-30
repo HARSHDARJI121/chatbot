@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot</title>
+  <style>
+    /* Styling for the chatbot components with media queries for responsiveness */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .chatbot-container {
+      margin-top: 50px;
+      text-align: center;
+      margin: 20px auto;
+      max-width: 80%; /* Ensure the container is responsive */
+      height: 100%;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      background-color: #fff;
+      width: 100%;
+      background-image: url('https://static.vecteezy.com/system/resources/previews/001/879/912/non_2x/geometric-tech-shape-background-free-vector.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    .heading {
+      font-size: 2rem;
+      margin-bottom: 20px;
+      color: white;
+    }
+    .messages-container {
+      margin-bottom: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #f9f9f9;
+      height: 100%;
+    }
+    .user-message {
+      text-align: right;
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #d3f8e2;
+      border-radius: 15px;
+      max-width: 80%;
+      margin-left: auto;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .chatbot-message {
+      text-align: left;
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #e0e0e0;
+      border-radius: 15px;
+      max-width: 80%;
+      margin-right: auto;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .input-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      margin-top: 20px;
+    }
+    .input-field {
+      padding: 10px;
+      margin-right: 10px;
+      width: 100%;
+      max-width: 300px; /* Max width ensures input field is responsive */
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+    .send-button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-top: 10px;
+      width: 100%;
+      max-width: 120px;
+    }
+
+    /* Media query for small screens */
+    @media (max-width: 400px) {
+      .chatbot-container {
+        padding: 10px;
+        margin: 10px;
+        width: 100%;
+      }
+      .heading {
+        font-size: 1.5rem;
+      }
+      .messages-container {
+        max-height: 250px;
+        height: 250px;
+      }
+      .input-field {
+        width: 80%;
+      }
+      .send-button {
+        width: 80%;
+        margin-top: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="chatbot-container">
+    <h1 class="heading">Chatbot</h1>
+    <div class="messages-container" id="messagesContainer"></div>
+    <div class="input-container">
+      <input
+        type="text"
+        id="messageInput"
+        placeholder="Type a message..."
+        class="input-field"
+      />
+      <button id="sendButton" class="send-button">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let messageInput = document.getElementById('messageInput');
+    let sendButton = document.getElementById('sendButton');
+    let messagesContainer = document.getElementById('messagesContainer');
+    let messages = [];
+    let isLoading = false;
+
+    // Handle form submission
+    sendButton.addEventListener('click', async () => {
+      let message = messageInput.value;
+      if (!message) return; // Don't send empty messages
+
+      let userMessage = message;
+      messageInput.value = ''; // Clear the input field
+      messages.push({ text: userMessage, sender: 'user' }); // Add user message to conversation history
+
+      renderMessages();
+
+      isLoading = true;
+      renderMessages();
+
+      try {
+        // Send the message to the backend
+        const res = await fetch('http://localhost:5000/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: userMessage }), // Send message to backend
+        });
+
+        // Check if the response is valid
+        if (!res.ok) {
+          throw new Error('Something went wrong, please try again!');
+        }
+
+        const data = await res.json(); // Get the response from backend
+
+        // Add chatbot response to conversation history
+        messages.push({ text: data.response, sender: 'chatbot' });
+      } catch (error) {
+        messages.push({ text: 'Error: ' + error.message, sender: 'chatbot' });
+      } finally {
+        isLoading = false;
+        renderMessages(); // Re-render messages after receiving response
+      }
+    });
+
+    // Function to render the messages in the chat
+    function renderMessages() {
+      messagesContainer.innerHTML = '';
+      messages.forEach(msg => {
+        let messageElement = document.createElement('div');
+        messageElement.classList.add(msg.sender === 'user' ? 'user-message' : 'chatbot-message');
+        messageElement.innerHTML = `<p>${msg.text}</p>`;
+        messagesContainer.appendChild(messageElement);
+      });
+
+      // If loading, show typing indicator
+      if (isLoading) {
+        let typingIndicator = document.createElement('div');
+        typingIndicator.classList.add('chatbot-message');
+        typingIndicator.innerHTML = `<p>Chatbot is typing...</p>`;
+        messagesContainer.appendChild(typingIndicator);
+      }
+
+      // Scroll to the latest message
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  </script>
+</body>
+</html>
